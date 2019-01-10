@@ -1,4 +1,4 @@
-Buffon machines [![License](https://img.shields.io/badge/license-BSD--3-orange.svg)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
+Buffon machines [![Build Status](https://travis-ci.org/maciej-bendkowski/buffon-machines.svg?branch=master)](https://travis-ci.org/maciej-bendkowski/buffon-machines) [![License](https://img.shields.io/badge/license-BSD--3-orange.svg)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
 ---------------
 
 *Buffon machines* is a simple, monadic implementation of Buffon machines meant
