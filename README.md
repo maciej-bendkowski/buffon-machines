@@ -1,4 +1,4 @@
-Buffon machines
+Buffon machines [![License](https://img.shields.io/badge/license-BSD--3-orange.svg)](https://tldrlegal.com/license/bsd-3-clause-license-(revised))
 ---------------
 
 *Buffon machines* is a simple, monadic implementation of Buffon machines meant
@@ -16,7 +16,7 @@ Finally, it is possible to compile more involved Buffon machines using the
 provided combinator functions.
 
 References
-==========
+----------
 
  [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
      SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
