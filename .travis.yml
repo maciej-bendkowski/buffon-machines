@@ -33,8 +33,8 @@ before_install:
   fi
 
 install:
-- stack --no-terminal --install-ghc test --only-dependencies --ghc-options=-Werror
-- stack install --ghc-options=-Werror
+#- stack --no-terminal --install-ghc test --only-dependencies --ghc-options=-Werror
+- stack build --ghc-options=-Werror
 
 script:
 # Compile haddock etc.
