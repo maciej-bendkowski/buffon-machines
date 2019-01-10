@@ -34,9 +34,10 @@ before_install:
 
 install:
 - cd $TRAVIS_BUILD_DIR
-- stack --no-terminal --install-ghc test --only-dependencies --ghc-options=-Werror
+#- stack --no-terminal --install-ghc test --only-dependencies --ghc-options=-Werror
 - stack build --ghc-options=-Werror
 
 script:
 # Compile haddock etc.
+- cd $TRAVIS_BUILD_DIR
 - stack --no-terminal test --haddock --no-haddock-deps
