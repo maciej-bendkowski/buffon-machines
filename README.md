@@ -10,7 +10,8 @@ and computation composition is handled within the monad itself.
 The current implementation provides several basic generators discussed within
 [1]. In particular, it offers perfect generators for Bernoulli, geometric,
 Poisson, and logarithmic distributions with given rational or real (i.e.
-double-precision floating) parameters.
+double-precision floating) parameters, as well as a bit-optimal discrete
+uniform variable generator described in [2].
 
 Finally, it is possible to compile more involved Buffon machines using the
 provided combinator functions.
@@ -21,3 +22,6 @@ References
  [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
      SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
      pp. 172-183, (Society for Industrial and Applied Mathematics) (2011)
+ 
+ [2] J. Lumbroso : "Optimal Discrete Uniform Generation
+     from Coin Flips, and Applications".

@@ -11,21 +11,24 @@ The Data.Buffon.Machine module provides a simple, monadic implementation of
 Buffon machines [1] meant for *perfect* simulation of discrete random variables
 using a discrete oracle of random bits. Buffon machines are implemented as
 monadic computations consuming random bits, provided by a 32-bit buffered
-oracle.  Bit regeneration and computation composition is handled within the
+oracle. Bit regeneration and computation composition is handled within the
 monad itself.
 
 The current implementation provides several basic generators discussed within
 [1]. In particular, it offers perfect generators for Bernoulli, geometric,
 Poisson, and logarithmic distributions with given rational or real (i.e.
-double-precision floating) parameters.
+double-precision floating) parameters, as well as a bit-optimal discrete
+uniform variable generator described in [2].
 
 Finally, it is possible to compile more involved Buffon machines using the
 provided combinator functions.
 
-
  [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
      SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
      pp. 172-183, (Society for Industrial and Applied Mathematics) (2011)
+
+ [2] J. Lumbroso : "Optimal Discrete Uniform Generation
+     from Coin Flips, and Applications".
  -}
 {-# LANGUAGE TupleSections, BangPatterns  #-}
 module Data.Buffon.Machine
@@ -55,6 +58,8 @@ module Data.Buffon.Machine
     , geometric, geometricReal, geometricRational, vonNeumann
     , poisson, generalPoisson, poissonReal, poissonRational
     , logarithmic, logarithmicReal, logarithmicRational
+
+    , uniform
     ) where
 
 import Prelude hiding (flip, init, recip,
@@ -507,3 +512,19 @@ poisson' :: RandomGen g => Int -> Bern g -> Bern g
 poisson' k m = do
     n <- poisson (geometric m)
     return (n == k)
+
+-- | Uniform random variable with support {0,1,...,n-1}.
+--   Note: 'uniform' is an implementation of the FastDiceRoller
+--   algorithm described by J. Lumbroso.
+uniform :: RandomGen g => Int -> Discrete g
+uniform n = uniform' n 1 0
+
+uniform' :: RandomGen g => Int -> Int -> Int -> Discrete g
+uniform' n !v !c = do
+    b <- flip
+    let v' = 2 * v
+    let c' = 2 * c + fromEnum b
+    if n <= v' then
+        if c' < n then return c'
+                  else uniform' n (v' - n) (c' - n)
+               else uniform' n v' c'
