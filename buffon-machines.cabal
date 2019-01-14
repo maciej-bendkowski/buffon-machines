@@ -14,7 +14,6 @@ cabal-version:  >= 1.10
 
 library
   exposed-modules: Data.Buffon.Machine
-                 , Data.Buffon.Internal.Trie
   build-depends:   random >= 1.1
                  , multiset >= 0.3.3
                  , base >=4.7 && <5

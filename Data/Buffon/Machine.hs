@@ -14,14 +14,13 @@ monadic computations consuming random bits, provided by a 32-bit buffered
 oracle. Bit regeneration and computation composition is handled within the
 monad itself.
 
-The current implementation provides several basic generators discussed within
-[1]. In particular, it offers perfect generators for Bernoulli, geometric,
-Poisson, and logarithmic distributions with given rational or real (i.e.
-double-precision floating) parameters, as well as a bit-optimal discrete
-uniform variable generator described in [2].
+The current implementation provides several basic generators discussed in [1].
+In particular, it offers perfect generators for geometric, Poisson, and
+logarithmic distributions with given rational or real (i.e.  double-precision
+floating) parameters, as well as a bit-optimal discrete uniform variable and
+Bernoulli generators described in [2]. More involved Buffon machines can be
+compiled using the provided combinators.
 
-Finally, it is possible to compile more involved Buffon machines using the
-provided combinator functions.
 
  [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
      SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
@@ -77,9 +76,6 @@ import qualified Data.MultiSet as S
 import System.Random
 
 import Numeric (floatToDigits)
-
-import Data.Buffon.Internal.Trie (Trie)
-import qualified Data.Buffon.Internal.Trie as T
 
 -- | 32-bit buffered random bit generator (RBG).
 data Rand g =
@@ -230,44 +226,19 @@ dyadic s t = do
     bs <- repeat t flip
     return $ bs `elem` ps
 
-take2 :: Int -> Int -> Int -> ([[Bool]], [[Bool]])
-take2 t n m = (ys, ys')
-    where (ys, xs) = splitAt n (genStream t)
-          ys' = take m xs
-
-rational'' :: RandomGen g => Int -> Trie -> Trie -> BuffonMachine g Bool
-rational'' t sx fx = do
-    bs <- repeat t flip
-    if bs `T.search` sx then return True
-                        else if bs `T.search` fx then rational'' t sx fx
-                                                 else return False
-
--- | Bernoulli variable with parameter λ = x/(2^t - y).
---   Note, it must hold a < b < 2^t. Otherwise, the result is undefined.
-rational' :: RandomGen g => Int -> Int -> Int -> Bern g
-rational' x y t = rational'' t (T.bulk sx) (T.bulk fx)
-    where (sx, fx) = take2 t x y
-
-isPower :: Int -> Bool
-isPower n = popCount n == 1
-
-succShift :: Int -> Int -> Int
-succShift 0 k = k
-succShift !n k = succShift (shiftR n 1) (succ k)
-
-nextPower :: Int -> Int
-nextPower n
-  | isPower n = succ $ succShift n 0 -- note: next *greater* power
-  | otherwise = succShift n 0
-
--- | Given parameters a and b, both positive and relatively prime,
---   returns a Bernoulli variable with rational parameter λ = a/b.
---   Note: 'rational' should not be used for more complicated rationals
---   as its rather ineffective. Alternatively, consider using 'real'.
+-- | Given parameters a < b, both positive, returns a Bernoulli
+--   variable with rational parameter λ = a/b. Note: Implements
+--   the algorithm 'Bernoulli' described by J. Lumbroso.
 rational :: RandomGen g => Int -> Int -> Bern g
-rational a b = rational' a b' t
-    where t  = nextPower b
-          b' = shiftL 1 t - b
+rational a b = do
+    let v = 2*a
+    heads <- flip
+    if v >= b then
+        if heads then rational (v - b) b
+                 else return True
+    else
+        if heads then rational v b
+                 else return False
 
 -- | Binary expansions.
 type Bin = [Bool]

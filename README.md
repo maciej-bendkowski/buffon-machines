@@ -7,14 +7,12 @@ oracle of random bits. Buffon machines are implemented as monadic computations
 consuming random bits, provided by a 32-bit buffered oracle. Bit regeneration
 and computation composition is handled within the monad itself.
 
-The current implementation provides several basic generators discussed within
-[1]. In particular, it offers perfect generators for Bernoulli, geometric,
-Poisson, and logarithmic distributions with given rational or real (i.e.
-double-precision floating) parameters, as well as a bit-optimal discrete
-uniform variable generator described in [2].
-
-Finally, it is possible to compile more involved Buffon machines using the
-provided combinator functions.
+The current implementation provides several basic generators discussed in [1].
+In particular, it offers perfect generators for geometric, Poisson, and
+logarithmic distributions with given rational or real (i.e.  double-precision
+floating) parameters, as well as a bit-optimal discrete uniform variable and
+Bernoulli generators described in [2]. More involved Buffon machines can be
+compiled using the provided combinators.
 
 References
 ----------
