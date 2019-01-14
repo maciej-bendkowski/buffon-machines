@@ -259,10 +259,9 @@ binExpansion x = binExpansion' bs n
 real' :: RandomGen g => Bin -> Bern g
 real' [] = error "Absurd case"
 real' (b : bs) = do
-    c <- flip
-    if c == b then real' bs
-              else if not c && b then return True
-                                 else return False
+    heads <- flip'
+    if heads then real' bs
+             else return b
 
 infinity :: Bool -> [Bool]
 infinity x = x : infinity x
