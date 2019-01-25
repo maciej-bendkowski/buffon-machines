@@ -523,8 +523,8 @@ layout xs = ys ++ [n]
           n   = L.repeat True
 
 -- | Decision trees.
-data DecisionTree a = Decision a               -- ^ Definite decision.
-                    | Toss (DecisionTree a)    -- ^ Branching choice tossing a coin.
+data DecisionTree a = Decision a
+                    | Toss (DecisionTree a)
                            (DecisionTree a)
                             deriving (Show)
 
