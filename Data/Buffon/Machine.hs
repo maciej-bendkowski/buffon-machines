@@ -516,9 +516,15 @@ uniform' n !v !c = do
 
 -- | Lays out a given set of probabilities p_1,...,p_n
 --   such that p_1 + ... + p_n = 1 on the segment [0,1).
+
+-- | Given a set of probabilities p_1 up to p_{n-1}, 'layout'
+--   aligns them on the [0,1) real line segment, assigning
+--   the remaining 1 - sum_{i=1,...,n-1} to the final event.
+--   So, for instance, 'layout' applied to [0.25,0.25,0.25]
+--   lays out four, equally likely events on the segment [0,1).
 layout :: [Double] -> [Bin]
 layout xs = ys ++ [n]
-    where xs' = L.scanl1 (+) (L.init xs)
+    where xs' = L.scanl1 (+) xs
           ys  = map binExpansion xs'
           n   = L.repeat True
 
@@ -533,7 +539,7 @@ toll :: Num a => (Int -> a -> a -> a)
               -> Int -> DecisionTree b -> a
 
 toll _ _ (Decision _) = 0
-toll f d (Toss lt rt) = f d lt' rt'
+toll f !d (Toss lt rt) = f d lt' rt'
     where lt' = toll f (succ d) lt
           rt' = toll f (succ d) rt
 
@@ -568,10 +574,11 @@ isCut (_, True : _ : _) = True
 isCut _                 = False
 
 -- | Computes a decition tree for the given set of probabilities
---   corresponding to successive outcomes 0,1,...,n-1.
---   Note: the outcome decision tree is not guaranteed
---   to be optimal, in the sense that it minimises
---   the average-case bit consumption.
+--   corresponding to successive outcomes 0,1,...,n-1. Note: the outcome
+--   decision tree is not guaranteed to be optimal, in the sense that
+--   it minimises the average-case bit consumption. Also, the final
+--   probability corresponding to the outcome n is computed
+--   automatically, so that it holds p_1 + ... + p_n = 1.
 decisionTree :: [Double] -> DecisionTree Int
 decisionTree ps = decisionTree' (zip nats ps')
     where ps' = layout ps
