@@ -140,20 +140,23 @@ runRIO :: BuffonMachine StdGen a -> IO a
 runRIO m = fst . runR m . init <$> getStdGen
 
 samples' :: RandomGen g
-        => Discrete g -> Int -> [Int]
-        -> BuffonMachine g [Int]
+        => BuffonMachine g a -> Int -> [a]
+        -> BuffonMachine g [a]
 
 samples' _ 0 xs = return xs
 samples' m !n xs = do
     x <- m
     samples' m (pred n) (x : xs)
 
--- | Using the given discrete variable (Buffon machine) outputs n random samples.
-samples :: RandomGen g => Discrete g -> Int -> BuffonMachine g [Int]
+-- | Using the given discrete variable
+--   (Buffon machine) outputs n random samples.
+samples :: RandomGen g
+        => BuffonMachine g a -> Int -> BuffonMachine g [a]
+
 samples m n = samples' m n []
 
 -- | Runs 'samples' within the IO monad.
-samplesIO :: Discrete StdGen -> Int -> IO [Int]
+samplesIO :: BuffonMachine StdGen a -> Int -> IO [a]
 samplesIO m n = runRIO (samples m n)
 
 -- | Computes a histogram of the given discrete random variable.
