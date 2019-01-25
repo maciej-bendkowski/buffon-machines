@@ -45,7 +45,7 @@ module Data.Buffon.Machine
       Rand(..), empty, init
     , BuffonMachine(..), runRIO
     , histogram, histogramIO
-    , samples, samplesIO
+    , samples, samplesIO, samplesIO'
 
     -- * Random variables.
     , Bern, Discrete
@@ -158,6 +158,16 @@ samples m n = samples' m n []
 -- | Runs 'samples' within the IO monad.
 samplesIO :: BuffonMachine StdGen a -> Int -> IO [a]
 samplesIO m n = runRIO (samples m n)
+
+-- | A space efficient variant of 'samplesIO'.
+samplesIO' :: BuffonMachine StdGen a -> Int -> IO [a]
+samplesIO' m n = samplesIO'' m n []
+
+samplesIO'' :: BuffonMachine StdGen a -> Int -> [a] -> IO [a]
+samplesIO'' _ 0 xs = return xs
+samplesIO'' m !n xs = do
+    x <- runRIO m
+    samplesIO'' m (pred n) (x : xs)
 
 -- | Computes a histogram of the given discrete random variable.
 --   The variable (Buffon machine) is evaluated n times and the data
