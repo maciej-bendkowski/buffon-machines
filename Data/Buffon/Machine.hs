@@ -72,7 +72,7 @@ module Data.Buffon.Machine
     , uniform
 
     -- * Non-uniform variable generator.
-    , decisionTree
+    , DecisionTree(..), decisionTree
     , unveil, maxFlips, minFlips
     , avgFlips, choice
     ) where
