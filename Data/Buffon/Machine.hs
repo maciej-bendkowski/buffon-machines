@@ -14,13 +14,19 @@ monadic computations consuming random bits, provided by a 32-bit buffered
 oracle. Bit regeneration and computation composition is handled within the
 monad itself.
 
-The current implementation provides several basic generators discussed in [1].
-In particular, it offers perfect generators for geometric, Poisson, and
-logarithmic distributions with given rational or real (i.e.  double-precision
-floating) parameters, as well as a bit-optimal discrete uniform variable and
-Bernoulli generators described in [2]. More involved Buffon machines can be
-compiled using the provided combinators.
+The current experimental implementation provides several basic generators
+discussed in [1].  In particular, it offers perfect generators for geometric,
+Poisson, and logarithmic distributions with given rational or real (i.e.
+double-precision floating) parameters, as well as a bit-optimal discrete uniform
+variable and Bernoulli generators described in [2]. More involved Buffon
+machines can be compiled using the provided combinators.
 
+General, non-uniform discrete variable generation, in the spirit of Knuth and
+Yao [3], is also available. However, it should be noted that the current
+implementation does not achieve optimal average bit consumption, except for a
+limited number of special cases.
+
+References:
 
  [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
      SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
@@ -28,6 +34,10 @@ compiled using the provided combinators.
 
  [2] J. Lumbroso : "Optimal Discrete Uniform Generation
      from Coin Flips, and Applications".
+
+ [3] D. Knuth, A. Yao : "The complexity of nonuniform random number generation",
+     in Algorithms and Complexity: New Directions and Recent Results,
+     Academic Press, (1976)
  -}
 {-# LANGUAGE TupleSections, BangPatterns  #-}
 module Data.Buffon.Machine
@@ -58,24 +68,32 @@ module Data.Buffon.Machine
     , poisson, generalPoisson, poissonReal, poissonRational
     , logarithmic, logarithmicReal, logarithmicRational
 
+    -- * Uniform variable generator.
     , uniform
+
+    -- * Non-uniform variable generator.
+    , decisionTree
+    , unveil, maxFlips, minFlips
+    , avgFlips, choice
     ) where
 
 import Prelude hiding (flip, init, recip,
                         repeat, even, exp)
 
+import qualified Prelude as P
+
 import Control.Monad
 
 import Data.Bits
 import Data.Word (Word32)
-import Data.List (foldl')
+import qualified Data.List as L
+
+import Numeric (floatToDigits)
 
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as S
 
 import System.Random
-
-import Numeric (floatToDigits)
 
 -- | 32-bit buffered random bit generator (RBG).
 data Rand g =
@@ -248,11 +266,11 @@ toBool 0 = False
 toBool 1 = True
 toBool _ = error "Absurd case"
 
-binExpansion' :: [Int] -> Int -> Bin
+binExpansion' :: [Int] -> Int -> [Bool]
 binExpansion' bs 0 = map toBool bs
 binExpansion' bs !n = False : binExpansion' bs (succ n)
 
-binExpansion :: Double -> Bin
+binExpansion :: Double -> [Bool]
 binExpansion x = binExpansion' bs n
     where (bs, n) = floatToDigits 2 x
 
@@ -263,14 +281,11 @@ real' (b : bs) = do
     if heads then real' bs
              else return b
 
-infinity :: Bool -> [Bool]
-infinity x = x : infinity x
-
 -- | Bernoulli variable with the given double-precision parameter.
 --   Note: the given parameter has to lie within 0 and 1 as otherwise
 --   the outcome is undefined.
 real :: RandomGen g => Double -> Bern g
-real x = real' (binExpansion x ++ infinity False)
+real x = real' (binExpansion x)
 
 -- | Conditional if-then-else combinator.
 cond :: Bern g                  -- ^ 'if' condition ...
@@ -443,7 +458,7 @@ poissonN :: RandomGen g => Double -> Int -> Discrete g
 poissonN p n = do
     let m = geometric (real p)
     xs <- samples (poisson m) n
-    return $ foldl' (+) 0 xs
+    return $ L.foldl' (+) 0 xs
 
 -- | Poisson distribution with the given double-precision parameter.
 poissonReal :: RandomGen g => Double -> Discrete g
@@ -498,3 +513,109 @@ uniform' n !v !c = do
         if c' < n then return c'
                   else uniform' n (v' - n) (c' - n)
                else uniform' n v' c'
+
+-- | Lays out a given set of probabilities p_1,...,p_n
+--   such that p_1 + ... + p_n = 1 on the segment [0,1).
+layout :: [Double] -> [Bin]
+layout xs = ys ++ [n]
+    where xs' = L.scanl1 (+) (L.init xs)
+          ys  = map binExpansion xs'
+          n   = L.repeat True
+
+-- | Decision trees.
+data DecisionTree a = Decision a               -- ^ Definite decision.
+                    | Toss (DecisionTree a)    -- ^ Branching choice tossing a coin.
+                           (DecisionTree a)
+                            deriving (Show)
+
+-- | General, depth-aware toll function.
+toll :: Num a => (Int -> a -> a -> a)
+              -> Int -> DecisionTree b -> a
+
+toll _ _ (Decision _) = 0
+toll f d (Toss lt rt) = f d lt' rt'
+    where lt' = toll f (succ d) lt
+          rt' = toll f (succ d) rt
+
+-- | Computes the maximal number of flips required
+--   to make a definite decision for the given tree.
+maxFlips :: DecisionTree a -> Int
+maxFlips = toll (\_ a b -> succ $ max a b) 0
+
+-- | Computes the minimal number of flips required
+--   to make a definite decision for the given tree.
+minFlips :: DecisionTree a -> Int
+minFlips = toll (\_ a b -> succ $ min a b) 0
+
+-- | Computes the average-case number of flips required
+--   to make a definite decision for the given tree.
+avgFlips :: DecisionTree a -> Double
+avgFlips = toll (\d a b -> P.recip (2 ^ d) + a + b) 0
+
+-- | Returns a string representation of a suitably
+--   truncated variant of the given decision tree up
+--   to the given depth parameter.
+unveil :: Show a => Int -> DecisionTree a -> String
+unveil _ (Decision a) = show a
+unveil 0 (Toss _ _) = "..."
+unveil n (Toss lt rt) = "(" ++ lt' ++ " | " ++ rt' ++ ")"
+    where lt' = unveil (pred n) lt
+          rt' = unveil (pred n) rt
+
+-- | Determines if the given segment is a regular cut segment.
+isCut :: (a, Bin) -> Bool
+isCut (_, True : _ : _) = True
+isCut _                 = False
+
+-- | Computes a decition tree for the given set of probabilities
+--   corresponding to successive outcomes 0,1,...,n-1.
+--   Note: the outcome decision tree is not guaranteed
+--   to be optimal, in the sense that it minimises
+--   the average-case bit consumption.
+decisionTree :: [Double] -> DecisionTree Int
+decisionTree ps = decisionTree' (zip nats ps')
+    where ps' = layout ps
+
+decisionTree' :: [(Int, Bin)] -> DecisionTree Int
+decisionTree' []       = error "Absurd case"
+decisionTree' [(n, _)] = Decision n
+decisionTree' ps = Toss lt' rt'
+    where (lt, rt) = splits ps
+          lt'      = decisionTree' (shave lt)
+          rt'      = decisionTree' (shave rt)
+
+splits :: [(a, Bin)] -> ([(a, Bin)], [(a, Bin)])
+splits ps =
+    case splits' [] ps of
+      -- p starts at .1 hence should not split.
+      (p, lt @ ((_, [True]) : _), rt) -> (reverse lt, p : rt)
+
+      -- p starts at 0. hence has to split.
+      (p, lt, rt)      -> (reverse (p : lt), p : rt)
+
+splits' :: [(a, Bin)] -> [(a, Bin)] -> ((a, Bin), [(a, Bin)], [(a, Bin)])
+splits' xs [p] = (p, xs, [])
+splits' xs (p : ps)
+  | isCut p   = (p, xs, ps)
+  | otherwise = splits' (p : xs) ps
+
+splits' _ _ = error "Absurd case"
+
+shave :: [(Int, Bin)] -> [(Int,Bin)]
+shave [] = []
+shave (p : ps) =
+    case p of
+      (n, [True]) -> (n, L.repeat True) : shave ps -- scale p to one.
+      (n, _ : bs) -> (n, bs) : shave ps            -- multiply by 2.
+      _           -> error "Absurd case"
+
+-- | Draws a discrete variable according
+--   to the given decision tree.
+choice :: (Num a, Enum a, RandomGen g)
+       => DecisionTree a -> BuffonMachine g a
+
+choice (Decision n) = return n
+choice (Toss lt rt) = do
+    heads <- flip
+    if heads then choice rt
+             else choice lt
