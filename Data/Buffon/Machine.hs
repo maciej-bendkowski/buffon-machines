@@ -7,19 +7,25 @@
  Maintainer  : maciej.bendkowski@tcs.uj.edu.pl
  Stability   : experimental
 
-The Data.Buffon.Machine module provides a simple, monadic implementation of
-Buffon machines [1] meant for *perfect* simulation of discrete random variables
-using a discrete oracle of random bits. Buffon machines are implemented as
-monadic computations consuming random bits, provided by a 32-bit buffered
-oracle. Bit regeneration and computation composition is handled within the
-monad itself.
+*Buffon machines* is a simple, monadic implementation of Buffon machines [1]
+meant for *perfect* simulation of discrete random variables using a discrete
+oracle of random bits. Buffon machines are implemented as monadic computations
+consuming random bits, provided by a 32-bit buffered oracle. Bit regeneration
+and computation composition is handled within the monad itself.
 
-The current experimental implementation provides several basic generators
-discussed in [1].  In particular, it offers perfect generators for geometric,
-Poisson, and logarithmic distributions with given rational or real (i.e.
-double-precision floating) parameters, as well as a bit-optimal discrete uniform
-variable and Bernoulli generators described in [2]. More involved Buffon
-machines can be compiled using the provided combinators.
+The main purpose of *Buffon machines* is to provide an experimental framework
+for discrete random variable generation required in the design and
+implementation of various combinatorial samplers, such as analytic samplers
+(a.k.a. Boltzmann samplers). In particular, its goal is to provide tools to
+*perfectly* simulate discrete distributions using as few random bits as
+possible.
+
+The current implementation provides several basic generators discussed in [1].
+In particular, it offers perfect generators for geometric, Poisson, and
+logarithmic distributions with given rational or real (i.e.  double-precision
+floating) parameters, as well as a bit-optimal discrete uniform variable and
+Bernoulli generators described in [2]. More involved Buffon machines can be
+compiled using the provided combinators.
 
 General, non-uniform discrete variable generation, in the spirit of Knuth and
 Yao [3], is also available. However, it should be noted that the current
