@@ -16,6 +16,7 @@ library
   exposed-modules: Data.Buffon.Machine
   build-depends:   random >= 1.1
                  , multiset >= 0.3.3
+                 , template-haskell >= 2.11.1.0
                  , base >=4.7 && <5
   ghc-options:   -O2
                  -Wall

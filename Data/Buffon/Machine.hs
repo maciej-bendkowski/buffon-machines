@@ -39,7 +39,7 @@ References:
      in Algorithms and Complexity: New Directions and Recent Results,
      Academic Press, (1976)
  -}
-{-# LANGUAGE TupleSections, BangPatterns  #-}
+{-# LANGUAGE TupleSections, BangPatterns, DeriveLift #-}
 module Data.Buffon.Machine
     ( -- * Buffon machines and related utilities.
       Rand(..), empty, init
@@ -94,6 +94,8 @@ import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as S
 
 import System.Random
+
+import Language.Haskell.TH.Syntax (Lift(..))
 
 -- | 32-bit buffered random bit generator (RBG).
 data Rand g =
@@ -545,7 +547,7 @@ layout xs = ys ++ [n]
 data DecisionTree a = Decision a
                     | Toss (DecisionTree a)
                            (DecisionTree a)
-                            deriving (Show)
+                            deriving (Show,Lift)
 
 -- | General, depth-aware toll function.
 toll :: Num a => (Int -> a -> a -> a)
