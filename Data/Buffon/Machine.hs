@@ -45,7 +45,7 @@ References:
      in Algorithms and Complexity: New Directions and Recent Results,
      Academic Press, (1976)
  -}
-{-# LANGUAGE TupleSections, BangPatterns, DeriveLift #-}
+{-# LANGUAGE BangPatterns, DeriveLift #-}
 module Data.Buffon.Machine
     ( -- * Buffon machines and related utilities.
       Rand(..), empty, init
@@ -105,9 +105,9 @@ import Language.Haskell.TH.Syntax (Lift(..))
 
 -- | 32-bit buffered random bit generator (RBG).
 data Rand g =
-    Rand { buffer  :: Word32 -- ^ Generator buffer.
-         , counter :: Int    -- ^ Number of consumed buffer bits.
-         , oracle  :: g      -- ^ Random bit oracle.
+    Rand { buffer  :: !Word32 -- ^ Generator buffer.
+         , counter :: !Int    -- ^ Number of consumed buffer bits.
+         , oracle  :: !g      -- ^ Random bit oracle.
          }
 
 -- | Checks if the given RBG is empty or not.
@@ -117,10 +117,10 @@ empty rng = counter rng == 32
 
 -- | A fresh RBG.
 init :: RandomGen g => g -> Rand g
-init g = let (x, g') = random g
-             in Rand { buffer  = x
-                     , counter = 0
-                     , oracle  = g' }
+init g = case random g of
+          (x, g') -> Rand { buffer  = x
+                          , counter = 0
+                          , oracle  = g' }
 
 -- | Computations consuming random bits using RBGs.
 --   Note that the implementation is essentially a State monad,
@@ -136,11 +136,11 @@ instance Applicative (BuffonMachine g) where
     (<*>) = ap
 
 instance Monad (BuffonMachine g) where
-    return x = BuffonMachine (x,)
+    return x = BuffonMachine $ \ !rng -> (x, rng)
     (BuffonMachine f) >>= h =
-        BuffonMachine $ \rng ->
-            let (x, rng') = f rng
-             in runR (h x) rng'
+        BuffonMachine $ \ !rng ->
+            case f rng of
+              (x, !rng') -> runR (h x) rng'
 
 -- | Runs the given Buffon machine within the IO monad
 --    using StdGen as its random bit oracle.
@@ -203,7 +203,7 @@ histogramIO :: BuffonMachine StdGen Int -> Int ->  IO ()
 histogramIO m n = runRIO (histogram m n) >>= print
 
 mkFlip :: Rand g -> (Bool, Rand g)
-mkFlip rng =
+mkFlip !rng =
     (testBit (buffer rng) (counter rng), -- test the respective bit.
         rng { counter = succ (counter rng) })
 
@@ -223,7 +223,7 @@ toDiscrete m = do
 -- | Random coin flip. Note that the implementation
 --   handles the regeneration of the RBG, see 'Rand'.
 flip :: RandomGen g => Bern g
-flip = BuffonMachine $ \rng ->
+flip = BuffonMachine $ \ !rng ->
     mkFlip $ if empty rng then init (oracle rng)
                           else rng
 
@@ -639,11 +639,21 @@ shave (p : ps) =
 
 -- | Draws a discrete variable according
 --   to the given decision tree.
-choice :: (Num a, Enum a, RandomGen g)
+choice :: RandomGen g
        => DecisionTree a -> BuffonMachine g a
 
-choice (Decision n) = return n
-choice (Toss lt rt) = do
+choice !x = do
     heads <- flip
-    if heads then choice rt
-             else choice lt
+    choice' heads x
+
+choice' :: RandomGen g
+        =>  Bool -> DecisionTree a -> BuffonMachine g a
+
+choice' _ (Decision n) = return n
+choice' True (Toss _ rt) = do
+    heads <- flip
+    choice' heads rt
+
+choice' False (Toss lt _) = do
+    heads <- flip
+    choice' heads lt
