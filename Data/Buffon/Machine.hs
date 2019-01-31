@@ -61,7 +61,7 @@ module Data.Buffon.Machine
     , flip, flip'
 
     -- * Bernoulli variable generators.
-    , dyadic, rational, real
+    , rational, real
 
     -- * Buffon machine combinators.
     , repeat, cond, neg
@@ -241,12 +241,6 @@ flip' = do
       (True, False) -> return True
       _             -> flip'
 
--- | Generates all 2^n boolean strings of length n.
-genStream :: Int -> [[Bool]]
-genStream 0 = [[]]
-genStream !n =  map (False :) (genStream $ pred n)
-             ++ map (True :) (genStream $ pred n)
-
 -- | Evaluates the given Bernoulli variable n times
 --   and returns a list of resulting values.
 repeat :: RandomGen g
@@ -257,13 +251,6 @@ repeat !n m = do
     b  <- m
     bs <- repeat (pred n) m
     return (b : bs)
-
--- | Bernoulli variable machine with dyadic parameter λ = s/(2^t).
-dyadic :: RandomGen g => Int -> Int -> Bern g
-dyadic s t = do
-    let ps = take s (genStream t)
-    bs <- repeat t flip
-    return $ bs `elem` ps
 
 -- | Given parameters a < b, both positive, returns a Bernoulli
 --   variable with rational parameter λ = a/b. Note: Implements
