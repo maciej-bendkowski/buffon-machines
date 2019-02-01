@@ -34,22 +34,22 @@ limited number of special cases.
 
 References:
 
- [1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
-     SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
-     pp. 172-183, (Society for Industrial and Applied Mathematics) (2011)
+[1] Ph. Flajolet, M. Pelletier, M. Soria : “On Buffon Machines and Numbers”,
+    SODA'11 - ACM/SIAM Symposium on Discrete Algorithms, San Francisco, USA,
+    pp. 172-183, (Society for Industrial and Applied Mathematics) (2011)
 
- [2] J. Lumbroso : "Optimal Discrete Uniform Generation
-     from Coin Flips, and Applications".
+[2] J. Lumbroso : "Optimal Discrete Uniform Generation
+    from Coin Flips, and Applications".
 
- [3] D. Knuth, A. Yao : "The complexity of nonuniform random number generation",
-     in Algorithms and Complexity: New Directions and Recent Results,
-     Academic Press, (1976)
+[3] D. Knuth, A. Yao : "The complexity of nonuniform random number generation",
+    in Algorithms and Complexity: New Directions and Recent Results,
+    Academic Press, (1976)
  -}
 {-# LANGUAGE BangPatterns, DeriveLift #-}
 module Data.Buffon.Machine
     ( -- * Buffon machines and related utilities.
       Rand(..), empty, init
-    , BuffonMachine(..), runRIO
+    , BuffonMachine, runRIO
     , histogram, histogramIO
     , samples, samplesIO, samplesIO'
 
@@ -89,6 +89,7 @@ import Prelude hiding (flip, init, recip,
 import qualified Prelude as P
 
 import Control.Monad
+import Control.Monad.State.Strict
 
 import Data.Bits
 import Data.Word (Word32)
@@ -114,6 +115,7 @@ data Rand g =
 --   In other words, if a buffer refill is required.
 empty :: Rand g -> Bool
 empty rng = counter rng == 32
+{-# INLINE empty #-}
 
 -- | A fresh RBG.
 init :: RandomGen g => g -> Rand g
@@ -121,31 +123,17 @@ init g = case random g of
           (x, g') -> Rand { buffer  = x
                           , counter = 0
                           , oracle  = g' }
+{-# INLINE init #-}
 
 -- | Computations consuming random bits using RBGs.
 --   Note that the implementation is essentially a State monad,
 --   passing RNG throughout its computations.
-newtype BuffonMachine g a =
-    BuffonMachine { runR :: Rand g -> (a, Rand g) }
-
-instance Functor (BuffonMachine g) where
-    fmap = liftM
-
-instance Applicative (BuffonMachine g) where
-    pure  = return
-    (<*>) = ap
-
-instance Monad (BuffonMachine g) where
-    return x = BuffonMachine $ \ !rng -> (x, rng)
-    (BuffonMachine f) >>= h =
-        BuffonMachine $ \ !rng ->
-            case f rng of
-              (x, !rng') -> runR (h x) rng'
+type BuffonMachine g a = State (Rand g) a
 
 -- | Runs the given Buffon machine within the IO monad
 --    using StdGen as its random bit oracle.
 runRIO :: BuffonMachine StdGen a -> IO a
-runRIO m = fst . runR m . init <$> getStdGen
+runRIO m = evalState m . init <$> getStdGen
 
 samples' :: RandomGen g
         => BuffonMachine g a -> Int -> [a]
@@ -202,11 +190,6 @@ histogram' m !n s = do
 histogramIO :: BuffonMachine StdGen Int -> Int ->  IO ()
 histogramIO m n = runRIO (histogram m n) >>= print
 
-mkFlip :: Rand g -> (Bool, Rand g)
-mkFlip !rng =
-    (testBit (buffer rng) (counter rng), -- test the respective bit.
-        rng { counter = succ (counter rng) })
-
 -- | Bernoulli variables.
 type Bern g = BuffonMachine g Bool
 
@@ -220,12 +203,21 @@ toDiscrete m = do
     return $ if b then 1
                   else 0
 
+oracle' :: RandomGen g => Rand g -> Rand g
+oracle' rng
+    | empty rng = init (oracle rng)
+    | otherwise = rng
+{-# INLINE oracle' #-}
+
 -- | Random coin flip. Note that the implementation
 --   handles the regeneration of the RBG, see 'Rand'.
 flip :: RandomGen g => Bern g
-flip = BuffonMachine $ \ !rng ->
-    mkFlip $ if empty rng then init (oracle rng)
-                          else rng
+flip = do
+    modify' oracle'
+    rng <- get
+    put $ rng { counter = succ (counter rng) }
+    return $ testBit (buffer rng) (counter rng) -- test respective bit.
+{-# INLINE flip #-}
 
 -- | Fair variant of flip. Implements the following, standard trick.
 --   Use 'flip' twice and continue if and only if both coin
@@ -633,6 +625,9 @@ choice !x = do
     heads <- flip
     choice' heads x
 
+{-# SPECIALISE choice ::
+        DecisionTree Int -> BuffonMachine StdGen Int #-}
+
 choice' :: RandomGen g
         =>  Bool -> DecisionTree a -> BuffonMachine g a
 
@@ -644,3 +639,6 @@ choice' True (Toss _ rt) = do
 choice' False (Toss lt _) = do
     heads <- flip
     choice' heads lt
+
+{-# SPECIALISE choice' ::
+        Bool -> DecisionTree Int -> BuffonMachine StdGen Int #-}
