@@ -514,9 +514,6 @@ uniform' n !v !c = do
                   else uniform' n (v' - n) (c' - n)
                else uniform' n v' c'
 
--- | Lays out a given set of probabilities p_1,...,p_n
---   such that p_1 + ... + p_n = 1 on the segment [0,1).
-
 -- | Given a set of probabilities p_1 up to p_{n-1}, 'layout'
 --   aligns them on the [0,1) real line segment, assigning
 --   the remaining 1 - sum_{i=1,...,n-1} to the final event.
