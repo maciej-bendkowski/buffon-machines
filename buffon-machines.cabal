@@ -1,5 +1,5 @@
 name:           buffon-machines
-version:        1.1.1.0
+version:        1.1.1.1
 synopsis:       Perfect simulation of discrete random variables
 description:    Monadic implementation of Buffon machines meant for perfect simulation of discrete random variables
 homepage:       https://github.com/maciej-bendkowski/buffon-machines#readme

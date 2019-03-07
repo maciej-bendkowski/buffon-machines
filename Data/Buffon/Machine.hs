@@ -128,7 +128,7 @@ init g = case random g of
 -- | Computations consuming random bits using RBGs.
 --   Note that the implementation is essentially a State monad,
 --   passing RNG throughout its computations.
-type BuffonMachine g a = State (Rand g) a
+type BuffonMachine g = State (Rand g)
 
 -- | Runs the given Buffon machine within the IO monad
 --    using StdGen as its random bit oracle.
