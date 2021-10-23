@@ -22,7 +22,7 @@ Bernoulli generators described in [2]. More involved Buffon machines can be
 compiled using the provided combinators.
 
 General, non-uniform discrete variable generation, in the spirit of Knuth and
-Yao [3], is also available. However, it should be noted that the current
+Yao [3], is also available, cf. [4]. However, it should be noted that the current
 implementation does not achieve optimal average bit consumption, except for a
 limited number of special cases.
 
@@ -39,3 +39,6 @@ References
  [3] D. Knuth, A. Yao : "The complexity of nonuniform random number generation",
      in Algorithms and Complexity: New Directions and Recent Results,
      Academic Press, (1976)
+
+ [4] F. Saad, C. Freer, M. Rinard, V. Mansinghka : "Optimal Approximate Sampling
+     from Discrete Probability Distributions".
