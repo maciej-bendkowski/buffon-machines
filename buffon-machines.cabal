@@ -1,12 +1,12 @@
 name:           buffon-machines
-version:        1.1.1.1
+version:        1.2.0.0
 synopsis:       Perfect simulation of discrete random variables
 description:    Monadic implementation of Buffon machines meant for perfect simulation of discrete random variables
 homepage:       https://github.com/maciej-bendkowski/buffon-machines#readme
 bug-reports:    https://github.com/maciej-bendkowski/buffon-machines/issues
 author:         Maciej Bendkowski
 maintainer:     maciej.bendkowski@tcs.uj.edu.pl
-copyright:      2019 Maciej Bendkowski
+copyright:      2021 Maciej Bendkowski
 license:        BSD3
 license-file:   LICENSE
 category:       Math
@@ -19,6 +19,7 @@ library
                  , multiset >= 0.3.3
                  , mtl >= 2.2.1
                  , template-haskell >= 2.11.1.0
+                 , vector >= 0.12.0
                  , base >=4.7 && <5
   ghc-options:   -O2
                  -Wall
